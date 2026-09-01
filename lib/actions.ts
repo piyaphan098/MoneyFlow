@@ -94,6 +94,44 @@ export async function deleteDebt(id: string) {
   revalidatePath("/", "layout");
 }
 
+/* ----------------------------------- bills ----------------------------------- */
+
+export async function saveBill(input: {
+  id?: string;
+  name: string;
+  icon: string;
+  category: CategoryId;
+  monthly_payment: number;
+  due_day: number;
+  note?: string;
+}) {
+  const { supabase, user } = await requireUser();
+
+  const row = {
+    user_id: user.id,
+    name: input.name,
+    icon: input.icon,
+    category: input.category,
+    monthly_payment: input.monthly_payment,
+    due_day: input.due_day,
+    note: input.note || null,
+  };
+
+  const { error } = input.id
+    ? await supabase.from("bills").update(row).eq("id", input.id).eq("user_id", user.id)
+    : await supabase.from("bills").insert(row);
+
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+export async function deleteBill(id: string) {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from("bills").delete().eq("id", id).eq("user_id", user.id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
 /* --------------------------------- reminders --------------------------------- */
 
 export async function setReminderLevel(input: { debt_id: string; reminder_days: 7 | 3 | 1 | 0; enabled: boolean }) {

@@ -5,33 +5,34 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Home, Receipt, CreditCard, Calendar as CalendarIcon, Settings as SettingsIcon,
-  Plus, Bell, LogOut,
+  Plus, Bell, LogOut, Zap,
 } from "lucide-react";
 import { QuickAddModal } from "@/components/QuickAddModal";
 import { saveTransaction } from "@/lib/actions";
 import { baht } from "@/lib/helpers";
-import type { Debt } from "@/lib/types";
+import type { DueItem } from "@/lib/helpers";
 
 const NAV = [
   { href: "/", label: "ภาพรวม", icon: Home },
   { href: "/transactions", label: "รายรับรายจ่าย", icon: Receipt },
   { href: "/debts", label: "หนี้สิน", icon: CreditCard },
+  { href: "/bills", label: "ค่าน้ำค่าไฟ", icon: Zap },
   { href: "/calendar", label: "ปฏิทิน", icon: CalendarIcon },
   { href: "/settings", label: "ตั้งค่า", icon: SettingsIcon },
 ];
 
 export function AppShell({
-  children, upcomingDebts,
+  children, upcomingItems,
 }: {
   children: React.ReactNode;
-  upcomingDebts: (Debt & { days: number })[];
+  upcomingItems: (DueItem & { days: number })[];
 }) {
   const pathname = usePathname();
   const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const reminders7 = upcomingDebts.filter((d) => d.days <= 7);
+  const reminders7 = upcomingItems.filter((d) => d.days <= 7);
   const activeLabel = NAV.find((n) => n.href === pathname)?.label ?? "MoneyFlow";
 
   return (

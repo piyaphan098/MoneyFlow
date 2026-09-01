@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { aggregateMonthly, baht, catInfo, withUpcoming } from "@/lib/helpers";
+import { aggregateMonthly, baht, catInfo, toDueItems, withUpcoming } from "@/lib/helpers";
 import { DashboardView } from "@/components/DashboardView";
-import type { Debt, Transaction } from "@/lib/types";
+import type { Bill, Debt, Transaction } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = createClient();
@@ -15,8 +15,12 @@ export default async function DashboardPage() {
     .limit(500);
   const transactions = (txData ?? []) as Transaction[];
 
-  const { data: debtsData } = await supabase.from("debts").select("*");
+  const [{ data: debtsData }, { data: billsData }] = await Promise.all([
+    supabase.from("debts").select("*"),
+    supabase.from("bills").select("*"),
+  ]);
   const debts = (debtsData ?? []) as Debt[];
+  const bills = (billsData ?? []) as Bill[];
 
   const monthly = aggregateMonthly(transactions, 12);
   const thisMonth = monthly[monthly.length - 1];
@@ -26,8 +30,9 @@ export default async function DashboardPage() {
   const expense = thisMonth.expense;
   const balance = transactions.reduce((s, t) => s + (t.type === "income" ? t.amount : -t.amount), 0);
 
-  const upcomingDebts = withUpcoming(debts);
-  const reminders7 = upcomingDebts
+  // debts + bills share the same "due soon" logic (Calendar-style)
+  const upcomingItems = withUpcoming(toDueItems(debts, bills));
+  const reminders7 = upcomingItems
     .filter((d) => d.days <= 7)
     .map((d) => ({ id: d.id, name: d.name, icon: d.icon, monthly_payment: d.monthly_payment, days: d.days }));
   const upcoming7Total = reminders7.reduce((s, d) => s + d.monthly_payment, 0);
@@ -45,6 +50,7 @@ export default async function DashboardPage() {
   const topCatEntry = Object.entries(catSums).sort((a, b) => b[1] - a[1])[0];
   const topCategory = topCatEntry ? catInfo(topCatEntry[0]).label : "-";
 
+  // debt-to-income ratio is about debts specifically, not recurring bills
   const totalMonthlyDebt = debts.reduce((s, d) => s + d.monthly_payment, 0);
   const debtRatio = income > 0 ? Math.round((totalMonthlyDebt / income) * 100) : 0;
 

@@ -30,6 +30,18 @@ export type Debt = {
   created_at: string;
 };
 
+export type Bill = {
+  id: string;
+  user_id: string;
+  name: string;
+  icon: string;
+  category: CategoryId;
+  monthly_payment: number;
+  due_day: number;
+  note: string | null;
+  created_at: string;
+};
+
 export type Reminder = {
   id: string;
   user_id: string;

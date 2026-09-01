@@ -1,4 +1,4 @@
-import type { CategoryId, Debt } from "@/lib/types";
+import type { Bill, CategoryId, Debt } from "@/lib/types";
 
 export const CATEGORIES: { id: CategoryId; label: string; color: string }[] = [
   { id: "food", label: "อาหาร", color: "#E0483E" },
@@ -33,17 +33,31 @@ export function todayISO() {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** Next occurrence of a "due day of month", relative to `from`. */
-export function nextDueDate(dueDay: number, from = new Date()) {
-  const y = from.getFullYear();
-  const m = from.getMonth();
-  const d = from.getDate();
+/** A due-dated recurring item — either a debt or a bill — normalized to one shape
+ *  so Calendar / Dashboard / notifications don't need to special-case either kind. */
+export type DueItem = {
+  id: string;
+  name: string;
+  icon: string;
+  due_day: number;
+  monthly_payment: number;
+  kind: "debt" | "bill";
+};
+
+export function toDueItems(debts: Debt[], bills: Bill[]): DueItem[] {
+  return [
+    ...debts.map((d) => ({ id: d.id, name: d.name, icon: d.icon, due_day: d.due_day, monthly_payment: d.monthly_payment, kind: "debt" as const })),
+    ...bills.map((b) => ({ id: b.id, name: b.name, icon: b.icon, due_day: b.due_day, monthly_payment: b.monthly_payment, kind: "bill" as const })),
+  ];
+}
+
+function nextDueDate(dueDay: number, from = new Date()) {
+  const y = from.getFullYear(), m = from.getMonth(), d = from.getDate();
   let candidate = new Date(y, m, dueDay);
   if (dueDay < d) candidate = new Date(y, m + 1, dueDay);
   return candidate;
 }
-
-export function daysBetween(a: Date, b: Date) {
+function daysBetween(a: Date, b: Date) {
   const MS = 24 * 60 * 60 * 1000;
   const a0 = new Date(a.getFullYear(), a.getMonth(), a.getDate());
   const b0 = new Date(b.getFullYear(), b.getMonth(), b.getDate());
@@ -120,9 +134,9 @@ export function aggregateMonthly(
     expense: buckets[k].expense,
   }));
 }
-export function withUpcoming(debts: Debt[]) {
+export function withUpcoming<T extends { due_day: number }>(items: T[]) {
   const today = new Date();
-  return debts
+  return items
     .map((d) => ({ ...d, days: daysBetween(today, nextDueDate(d.due_day)) }))
     .sort((a, b) => a.days - b.days);
 }

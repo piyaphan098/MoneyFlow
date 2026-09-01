@@ -178,38 +178,31 @@ create policy "line_links: update own" on public.line_links
 -- That key bypasses RLS — never expose it to the browser.
 
 -- ---------------------------------------------------------
--- LINE integration
+-- bills  (recurring expenses with a due date, e.g. ค่าน้ำ/ค่าไฟ/ค่าเน็ต —
+-- distinct from "debts": no original/remaining balance or interest, just
+-- a recurring amount + a day of the month it's due)
 -- ---------------------------------------------------------
-
--- one LINE account can link to exactly one MoneyFlow user
-create table if not exists public.line_accounts (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  line_user_id text not null unique,
-  linked_at timestamptz not null default now()
-);
-
-alter table public.line_accounts enable row level security;
-
-create policy "line_accounts: select own" on public.line_accounts
-  for select using (auth.uid() = user_id);
-create policy "line_accounts: delete own" on public.line_accounts
-  for delete using (auth.uid() = user_id);
--- no insert/update policy for normal users — only the webhook (service role,
--- which bypasses RLS) is allowed to create the link, after verifying a code.
-
--- short-lived one-time codes a user generates in Settings and pastes into LINE
-create table if not exists public.line_link_codes (
-  code text primary key,
+create table if not exists public.bills (
+  id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
-  created_at timestamptz not null default now(),
-  expires_at timestamptz not null,
-  used_at timestamptz
+  name text not null,
+  icon text not null default '💡',
+  category text not null default 'utility',
+  monthly_payment numeric(12, 2) not null check (monthly_payment >= 0),
+  due_day int not null check (due_day between 1 and 31),
+  note text,
+  created_at timestamptz not null default now()
 );
 
-alter table public.line_link_codes enable row level security;
+create index if not exists bills_user_idx on public.bills (user_id);
 
-create policy "line_link_codes: select own" on public.line_link_codes
+alter table public.bills enable row level security;
+
+create policy "bills: select own" on public.bills
   for select using (auth.uid() = user_id);
-create policy "line_link_codes: insert own" on public.line_link_codes
+create policy "bills: insert own" on public.bills
   for insert with check (auth.uid() = user_id);
--- marking a code as used is done by the webhook via the service role key.
+create policy "bills: update own" on public.bills
+  for update using (auth.uid() = user_id);
+create policy "bills: delete own" on public.bills
+  for delete using (auth.uid() = user_id);

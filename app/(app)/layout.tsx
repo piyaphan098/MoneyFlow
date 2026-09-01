@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { withUpcoming } from "@/lib/helpers";
+import { toDueItems, withUpcoming } from "@/lib/helpers";
 import { AppShell } from "@/components/AppShell";
-import type { Debt } from "@/lib/types";
+import type { Bill, Debt } from "@/lib/types";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -12,12 +12,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect("/login");
 
-  const { data: debts } = await supabase
-    .from("debts")
-    .select("*")
-    .order("due_day", { ascending: true });
+  const [{ data: debts }, { data: bills }] = await Promise.all([
+    supabase.from("debts").select("*").order("due_day", { ascending: true }),
+    supabase.from("bills").select("*").order("due_day", { ascending: true }),
+  ]);
 
-  const upcomingDebts = withUpcoming((debts ?? []) as Debt[]);
+  const upcomingItems = withUpcoming(
+    toDueItems((debts ?? []) as Debt[], (bills ?? []) as Bill[])
+  );
 
-  return <AppShell upcomingDebts={upcomingDebts}>{children}</AppShell>;
+  return <AppShell upcomingItems={upcomingItems}>{children}</AppShell>;
 }

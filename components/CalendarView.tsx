@@ -3,15 +3,15 @@
 import { useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { baht, cellHighlight, colorAt, thMonths, weekdaysTH } from "@/lib/helpers";
-import type { Debt } from "@/lib/types";
+import type { DueItem } from "@/lib/helpers";
 
-export function CalendarView({ debts }: { debts: Debt[] }) {
+export function CalendarView({ items }: { items: DueItem[] }) {
   const today = new Date();
   const [offset, setOffset] = useState(0);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  // stable color per debt, based on its position in the (server-sorted) list
-  const debtColor = new Map(debts.map((d, i) => [d.id, colorAt(i)]));
+  // stable color per item, based on its position in the (server-sorted) list
+  const itemColor = new Map(items.map((it, i) => [it.id, colorAt(i)]));
 
   const base = new Date(today.getFullYear(), today.getMonth() + offset, 1);
   const y = base.getFullYear();
@@ -20,9 +20,9 @@ export function CalendarView({ debts }: { debts: Debt[] }) {
   const startOffset = (firstDay.getDay() + 6) % 7; // Monday = 0
   const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-  const dueMap: Record<number, Debt[]> = {};
-  debts.forEach((d) => {
-    (dueMap[d.due_day] ??= []).push(d);
+  const dueMap: Record<number, DueItem[]> = {};
+  items.forEach((it) => {
+    (dueMap[it.due_day] ??= []).push(it);
   });
 
   const cells: (number | null)[] = [...Array(startOffset).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
@@ -42,12 +42,12 @@ export function CalendarView({ debts }: { debts: Debt[] }) {
         <div className="grid grid-cols-7 gap-1">
           {cells.map((d, i) => {
             if (d === null) return <div key={i} />;
-            const items = dueMap[d] || [];
-            const colors = items.map((it) => debtColor.get(it.id)!);
+            const dayItems = dueMap[d] || [];
+            const colors = dayItems.map((it) => itemColor.get(it.id)!);
             const isToday = isCurrentMonth && d === today.getDate();
             const isSelected = selectedDay === d;
             return (
-              <button key={i} onClick={() => setSelectedDay(items.length ? d : null)}
+              <button key={i} onClick={() => setSelectedDay(dayItems.length ? d : null)}
                 className="aspect-square rounded-xl flex flex-col items-center justify-center relative text-sm transition-colors"
                 style={{
                   background: isSelected ? "#EFECFC" : cellHighlight(colors),
@@ -56,7 +56,7 @@ export function CalendarView({ debts }: { debts: Debt[] }) {
                   fontWeight: isToday ? 700 : 400,
                 }}>
                 {d}
-                {items.length > 0 && (
+                {dayItems.length > 0 && (
                   <span className="absolute bottom-1.5 flex gap-0.5">
                     {colors.slice(0, 4).map((c, idx) => (
                       <span key={idx} className="w-1.5 h-1.5 rounded-full" style={{ background: c }} />
@@ -68,12 +68,12 @@ export function CalendarView({ debts }: { debts: Debt[] }) {
           })}
         </div>
 
-        {debts.length > 0 && (
+        {items.length > 0 && (
           <div className="flex flex-wrap gap-x-3 gap-y-1.5 mt-4 pt-3 border-t border-mf-line">
-            {debts.map((d) => (
-              <span key={d.id} className="flex items-center gap-1.5 text-xs text-mf-sub">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: debtColor.get(d.id) }} />
-                {d.icon} {d.name}
+            {items.map((it) => (
+              <span key={it.id} className="flex items-center gap-1.5 text-xs text-mf-sub">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: itemColor.get(it.id) }} />
+                {it.icon} {it.name}
               </span>
             ))}
           </div>
@@ -84,14 +84,14 @@ export function CalendarView({ debts }: { debts: Debt[] }) {
         <div className="rounded-2xl bg-mf-card p-4 sm:p-5" style={{ boxShadow: "0 1px 2px rgba(28,26,46,0.04), 0 8px 24px -12px rgba(46,40,96,0.12)" }}>
           <h4 className="font-semibold mb-3">รายการที่ต้องจ่ายวันที่ {selectedDay}</h4>
           <div className="space-y-2">
-            {dueMap[selectedDay].map((d) => (
-              <div key={d.id} className="flex items-center justify-between rounded-xl p-3" style={{ background: debtColor.get(d.id) + "14" }}>
+            {dueMap[selectedDay].map((it) => (
+              <div key={it.id} className="flex items-center justify-between rounded-xl p-3" style={{ background: itemColor.get(it.id) + "14" }}>
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: debtColor.get(d.id) }} />
-                  <span className="text-lg">{d.icon}</span>
-                  <p className="text-sm font-medium">{d.name}</p>
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ background: itemColor.get(it.id) }} />
+                  <span className="text-lg">{it.icon}</span>
+                  <p className="text-sm font-medium">{it.name}</p>
                 </div>
-                <p className="text-sm font-semibold mf-num">{baht(d.monthly_payment)}</p>
+                <p className="text-sm font-semibold mf-num">{baht(it.monthly_payment)}</p>
               </div>
             ))}
           </div>
