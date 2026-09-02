@@ -41,7 +41,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-mf-bg px-4">
       <div className="w-full max-w-sm bg-mf-card rounded-3xl p-6 shadow-sm">
         <div className="flex items-center gap-2 mb-6">
-          <div className="w-9 h-9 rounded-xl bg-mf-primary text-white font-bold flex items-center justify-center">M</div>
+          <img src="/logo.png" alt="MoneyFlow" className="w-9 h-9 rounded-xl object-cover" />
           <div>
             <p className="font-bold leading-tight text-mf-text">MoneyFlow</p>
             <p className="text-[10px] text-mf-sub">Know your money. Know your next payment.</p>

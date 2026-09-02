@@ -41,7 +41,7 @@ export function AppShell({
         {/* desktop sidebar */}
         <aside className="hidden md:flex flex-col w-60 shrink-0 min-h-screen p-5 border-r border-mf-line">
           <div className="flex items-center gap-2 mb-8 px-1">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white font-bold bg-mf-primary">M</div>
+            <img src="/logo.png" alt="MoneyFlow" className="w-9 h-9 rounded-xl object-cover" />
             <div>
               <p className="font-bold leading-tight">MoneyFlow</p>
               <p className="text-[10px] text-mf-sub">Know your next payment</p>
@@ -76,7 +76,7 @@ export function AppShell({
           {/* topbar */}
           <div className="sticky top-0 z-20 flex items-center justify-between px-4 sm:px-6 py-3.5 backdrop-blur border-b border-mf-line" style={{ background: "#F7F6FBE6" }}>
             <div className="flex items-center gap-2 md:hidden">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-sm bg-mf-primary">M</div>
+              <img src="/logo.png" alt="MoneyFlow" className="w-7 h-7 rounded-lg object-cover" />
               <p className="font-bold">MoneyFlow</p>
             </div>
             <h2 className="hidden md:block font-semibold text-lg">{activeLabel}</h2>
