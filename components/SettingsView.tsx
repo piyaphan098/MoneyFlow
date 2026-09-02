@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { LogOut } from "lucide-react";
 import { setReminderLevel } from "@/lib/actions";
 import type { Debt, Reminder } from "@/lib/types";
 
@@ -11,7 +12,7 @@ const LEVELS: { days: 7 | 3 | 1 | 0; label: string }[] = [
   { days: 0, label: "วันครบกำหนด" },
 ];
 
-export function SettingsView({ debts, reminders }: { debts: Debt[]; reminders: Reminder[] }) {
+export function SettingsView({ debts, reminders, userEmail }: { debts: Debt[]; reminders: Reminder[]; userEmail: string | null }) {
   const router = useRouter();
 
   const byDebt = new Map<string, Map<number, Reminder>>();
@@ -59,6 +60,17 @@ export function SettingsView({ debts, reminders }: { debts: Debt[]; reminders: R
         <div className="mt-5 pt-4 border-t border-mf-line">
           <p className="text-xs text-mf-sub">ต่อยอดได้ในอนาคต: Browser Notification, Email, LINE Notify / LINE Messaging API</p>
         </div>
+      </div>
+
+      <div className="rounded-2xl bg-mf-card p-4 sm:p-5" style={{ boxShadow: "0 1px 2px rgba(28,26,46,0.04), 0 8px 24px -12px rgba(46,40,96,0.12)" }}>
+        <h3 className="font-semibold mb-1">บัญชีผู้ใช้</h3>
+        {userEmail && <p className="text-xs text-mf-sub mb-4">เข้าสู่ระบบด้วย {userEmail}</p>}
+        <form action="/auth/signout" method="post">
+          <button className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+            style={{ color: "#E0483E", background: "#FCEAE9" }}>
+            <LogOut size={15} /> ออกจากระบบ
+          </button>
+        </form>
       </div>
     </div>
   );
