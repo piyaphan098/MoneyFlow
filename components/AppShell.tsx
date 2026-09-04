@@ -132,11 +132,13 @@ export function AppShell({
         })}
       </div>
 
-      <button onClick={() => setModalOpen(true)}
-        className="md:hidden fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full flex items-center justify-center text-white bg-mf-primary"
-        style={{ boxShadow: "0 10px 24px -6px rgba(91,79,224,0.55)" }}>
-        <Plus size={24} />
-      </button>
+      {!["/debts", "/bills"].includes(pathname) && (
+        <button onClick={() => setModalOpen(true)}
+          className="md:hidden fixed bottom-20 right-4 z-20 w-14 h-14 rounded-full flex items-center justify-center text-white bg-mf-primary"
+          style={{ boxShadow: "0 10px 24px -6px rgba(91,79,224,0.55)" }}>
+          <Plus size={24} />
+        </button>
+      )}
 
       {modalOpen && (
         <QuickAddModal
