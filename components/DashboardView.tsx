@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Wallet, TrendingUp, TrendingDown, CalendarClock, Lightbulb } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { baht, urgency } from "@/lib/helpers";
+import { OnboardingCard } from "@/components/OnboardingCard";
 
 type MonthPoint = { key: string; label: string; income: number; expense: number };
 type ReminderDebt = { id: string; name: string; icon: string; monthly_payment: number; days: number };
@@ -43,7 +44,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
 }
 
 export function DashboardView({
-  balance, income, expense, upcoming7Total, monthly, reminders7, insights,
+  balance, income, expense, upcoming7Total, monthly, reminders7, insights, isNewUser,
 }: {
   balance: number;
   income: number;
@@ -52,6 +53,7 @@ export function DashboardView({
   monthly: MonthPoint[]; // last 12 months, oldest first
   reminders7: ReminderDebt[];
   insights: string[];
+  isNewUser: boolean;
 }) {
   const [range, setRange] = useState<"1" | "3" | "6" | "12">("3");
   const n = range === "1" ? 1 : range === "3" ? 3 : range === "6" ? 6 : 12;
@@ -60,6 +62,7 @@ export function DashboardView({
 
   return (
     <div className="space-y-5">
+      {isNewUser && <OnboardingCard />}
       <Card className="p-5 sm:p-6 text-white relative overflow-hidden" style={{ background: "linear-gradient(135deg, #5B4FE0, #2E2860)" }}>
         <div className="flex items-start justify-between">
           <div>

@@ -64,6 +64,8 @@ export default async function DashboardPage() {
           `ยอดผ่อนหนี้คิดเป็น <b>${debtRatio}%</b> ของรายรับเดือนนี้`,
         ];
 
+  const isNewUser = transactions.length === 0 && debts.length === 0 && bills.length === 0;
+
   return (
     <DashboardView
       balance={balance}
@@ -73,6 +75,7 @@ export default async function DashboardPage() {
       monthly={monthly}
       reminders7={reminders7}
       insights={insights}
+      isNewUser={isNewUser}
     />
   );
 }
