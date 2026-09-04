@@ -71,6 +71,11 @@ export function SettingsView({ debts, reminders, userEmail }: { debts: Debt[]; r
             <LogOut size={15} /> ออกจากระบบ
           </button>
         </form>
+        <div className="flex justify-center gap-3 mt-4 text-[11px] text-mf-sub">
+          <a href="/terms" target="_blank" className="underline">ข้อกำหนดการใช้งาน</a>
+          <span>·</span>
+          <a href="/privacy" target="_blank" className="underline">นโยบายความเป็นส่วนตัว</a>
+        </div>
       </div>
     </div>
   );

@@ -106,6 +106,13 @@ export default function LoginPage() {
             {loading ? "กำลังดำเนินการ..." : mode === "signin" ? "เข้าสู่ระบบ" : "สมัครสมาชิก"}
           </button>
         </form>
+
+        <p className="text-center text-[11px] text-mf-sub mt-5">
+          การใช้งานถือว่ายอมรับ{" "}
+          <a href="/terms" target="_blank" className="underline">ข้อกำหนดการใช้งาน</a>{" "}
+          และ{" "}
+          <a href="/privacy" target="_blank" className="underline">นโยบายความเป็นส่วนตัว</a>
+        </p>
       </div>
     </div>
   );
