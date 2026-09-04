@@ -23,8 +23,8 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["Sarabun", "system-ui", "sans-serif"],
-        mono: ["JetBrains Mono", "monospace"],
+        sans: ["var(--font-sarabun)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains-mono)", "monospace"],
       },
       borderRadius: {
         "2xl": "1rem",
