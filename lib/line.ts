@@ -29,6 +29,21 @@ export async function lineReply(replyToken: string, text: string) {
   });
 }
 
+/** Proactively sends a message to a LINE user — not in response to anything
+ *  they sent. Used for scheduled digests (weekly/monthly summaries). LINE's
+ *  free tier includes 500 push messages/month per OA; beyond that it's billed
+ *  per message, so keep an eye on volume as the user base grows. */
+export async function linePush(to: string, text: string) {
+  await fetch(`${LINE_API}/push`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.LINE_CHANNEL_ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({ to, messages: [{ type: "text", text }] }),
+  });
+}
+
 /* ---------------------------- transaction text parsing ---------------------------- */
 
 const CATEGORY_KEYWORDS: Record<CategoryId, string[]> = {

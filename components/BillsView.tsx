@@ -2,18 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle2 } from "lucide-react";
 import { BillModal } from "@/components/BillModal";
-import { saveBill, deleteBill } from "@/lib/actions";
+import { saveBill, deleteBill, logBillPayment } from "@/lib/actions";
 import { baht, catInfo } from "@/lib/helpers";
 import type { Bill } from "@/lib/types";
 
 export function BillsView({ bills }: { bills: Bill[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Bill | null | "new">(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const total = bills.reduce((s, b) => s + b.monthly_payment, 0);
   const sorted = [...bills].sort((a, b) => a.due_day - b.due_day);
+
+  async function handlePay(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setPayingId(id);
+    try {
+      await logBillPayment(id);
+      router.refresh();
+    } finally {
+      setPayingId(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -39,18 +51,31 @@ export function BillsView({ bills }: { bills: Bill[] }) {
         {sorted.map((b) => {
           const cat = catInfo(b.category);
           return (
-            <button key={b.id} onClick={() => setEditing(b)} className="w-full text-left">
-              <div className="rounded-2xl bg-mf-card p-4 flex items-center justify-between" style={{ boxShadow: "0 1px 2px rgba(28,26,46,0.04), 0 8px 24px -12px rgba(46,40,96,0.12)" }}>
-                <div className="flex items-center gap-3">
-                  <span className="text-xl">{b.icon}</span>
-                  <div>
-                    <p className="font-medium text-sm">{b.name}</p>
-                    <p className="text-xs text-mf-sub">จ่ายทุกวันที่ {b.due_day} · {cat.label}</p>
+            <div key={b.id} onClick={() => setEditing(b)} className="w-full text-left cursor-pointer">
+              <div className="rounded-2xl bg-mf-card p-4" style={{ boxShadow: "0 1px 2px rgba(28,26,46,0.04), 0 8px 24px -12px rgba(46,40,96,0.12)" }}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl">{b.icon}</span>
+                    <div>
+                      <p className="font-medium text-sm">{b.name}</p>
+                      <p className="text-xs text-mf-sub">จ่ายทุกวันที่ {b.due_day} · {cat.label}</p>
+                    </div>
                   </div>
+                  <p className="text-sm font-semibold mf-num">{baht(b.monthly_payment)}<span className="text-xs font-normal text-mf-sub">/เดือน</span></p>
                 </div>
-                <p className="text-sm font-semibold mf-num">{baht(b.monthly_payment)}<span className="text-xs font-normal text-mf-sub">/เดือน</span></p>
+                <div className="flex justify-end mt-2">
+                  <button
+                    onClick={(e) => handlePay(b.id, e)}
+                    disabled={payingId === b.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-60"
+                    style={{ color: "#1F9D55", background: "#E7F7ED" }}
+                  >
+                    <CheckCircle2 size={14} />
+                    {payingId === b.id ? "กำลังบันทึก..." : "จ่ายแล้ว"}
+                  </button>
+                </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>

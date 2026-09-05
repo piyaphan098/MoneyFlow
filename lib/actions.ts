@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { todayISO } from "@/lib/helpers";
 import type { CategoryId, TxType } from "@/lib/types";
 
 async function requireUser() {
@@ -94,6 +95,35 @@ export async function deleteDebt(id: string) {
   revalidatePath("/", "layout");
 }
 
+/** Marks a debt's monthly payment as paid: logs it as an expense transaction
+ *  AND reduces the debt's remaining balance — one tap instead of re-entering
+ *  the same amount manually in Transactions. */
+export async function logDebtPayment(debtId: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: debt, error: fetchErr } = await supabase
+    .from("debts").select("*").eq("id", debtId).eq("user_id", user.id).single();
+  if (fetchErr || !debt) throw new Error(fetchErr?.message || "ไม่พบรายการหนี้นี้");
+
+  const { error: txErr } = await supabase.from("transactions").insert({
+    user_id: user.id,
+    type: "expense",
+    description: debt.name,
+    amount: debt.monthly_payment,
+    category: "debt",
+    date: todayISO(),
+    note: "บันทึกอัตโนมัติจากหน้าหนี้สิน",
+  });
+  if (txErr) throw new Error(txErr.message);
+
+  const newRemaining = Math.max(0, Number(debt.remaining_amount) - Number(debt.monthly_payment));
+  const { error: updateErr } = await supabase
+    .from("debts").update({ remaining_amount: newRemaining }).eq("id", debtId).eq("user_id", user.id);
+  if (updateErr) throw new Error(updateErr.message);
+
+  revalidatePath("/", "layout");
+}
+
 /* ----------------------------------- bills ----------------------------------- */
 
 export async function saveBill(input: {
@@ -129,6 +159,29 @@ export async function deleteBill(id: string) {
   const { supabase, user } = await requireUser();
   const { error } = await supabase.from("bills").delete().eq("id", id).eq("user_id", user.id);
   if (error) throw new Error(error.message);
+  revalidatePath("/", "layout");
+}
+
+/** Logs a bill's amount as an expense transaction for today — one tap instead
+ *  of re-entering the same recurring amount manually in Transactions. */
+export async function logBillPayment(billId: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: bill, error: fetchErr } = await supabase
+    .from("bills").select("*").eq("id", billId).eq("user_id", user.id).single();
+  if (fetchErr || !bill) throw new Error(fetchErr?.message || "ไม่พบรายการนี้");
+
+  const { error: txErr } = await supabase.from("transactions").insert({
+    user_id: user.id,
+    type: "expense",
+    description: bill.name,
+    amount: bill.monthly_payment,
+    category: bill.category,
+    date: todayISO(),
+    note: "บันทึกอัตโนมัติจากหน้าค่าใช้จ่ายประจำ",
+  });
+  if (txErr) throw new Error(txErr.message);
+
   revalidatePath("/", "layout");
 }
 

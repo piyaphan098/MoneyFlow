@@ -2,18 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle2 } from "lucide-react";
 import { DebtModal } from "@/components/DebtModal";
-import { saveDebt, deleteDebt } from "@/lib/actions";
+import { saveDebt, deleteDebt, logDebtPayment } from "@/lib/actions";
 import { baht } from "@/lib/helpers";
 import type { Debt } from "@/lib/types";
 
 export function DebtsView({ debts }: { debts: Debt[] }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Debt | null | "new">(null);
+  const [payingId, setPayingId] = useState<string | null>(null);
 
   const totalRemaining = debts.reduce((s, d) => s + d.remaining_amount, 0);
   const totalMonthly = debts.reduce((s, d) => s + d.monthly_payment, 0);
+
+  async function handlePay(id: string, e: React.MouseEvent) {
+    e.stopPropagation();
+    setPayingId(id);
+    try {
+      await logDebtPayment(id);
+      router.refresh();
+    } finally {
+      setPayingId(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -44,7 +56,7 @@ export function DebtsView({ debts }: { debts: Debt[] }) {
           const paid = d.original_amount - d.remaining_amount;
           const pct = Math.round((paid / d.original_amount) * 100);
           return (
-            <button key={d.id} onClick={() => setEditing(d)} className="w-full text-left">
+            <div key={d.id} onClick={() => setEditing(d)} className="w-full text-left cursor-pointer">
               <div className="rounded-2xl bg-mf-card p-4" style={{ boxShadow: "0 1px 2px rgba(28,26,46,0.04), 0 8px 24px -12px rgba(46,40,96,0.12)" }}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
@@ -59,12 +71,25 @@ export function DebtsView({ debts }: { debts: Debt[] }) {
                 <div className="w-full h-2 rounded-full overflow-hidden bg-mf-line">
                   <div className="h-full rounded-full bg-mf-primary" style={{ width: `${pct}%` }} />
                 </div>
-                <div className="flex justify-between mt-1.5 text-xs text-mf-sub">
-                  <span className="mf-num">{baht(paid)} / {baht(d.original_amount)} ผ่อนแล้ว</span>
-                  <span className="mf-num">{pct}%</span>
+                <div className="flex justify-between items-center mt-2">
+                  <div className="flex flex-col">
+                    <span className="text-xs text-mf-sub mf-num">{baht(paid)} / {baht(d.original_amount)} ผ่อนแล้ว</span>
+                    <span className="text-xs text-mf-sub mf-num">{pct}%</span>
+                  </div>
+                  {d.remaining_amount > 0 && (
+                    <button
+                      onClick={(e) => handlePay(d.id, e)}
+                      disabled={payingId === d.id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-60"
+                      style={{ color: "#1F9D55", background: "#E7F7ED" }}
+                    >
+                      <CheckCircle2 size={14} />
+                      {payingId === d.id ? "กำลังบันทึก..." : "จ่ายแล้ว"}
+                    </button>
+                  )}
                 </div>
               </div>
-            </button>
+            </div>
           );
         })}
       </div>
