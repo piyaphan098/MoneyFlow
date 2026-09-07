@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -23,6 +23,15 @@ const jetbrainsMono = localFont({
 export const metadata: Metadata = {
   title: "MoneyFlow",
   description: "Know your money. Know your next payment.",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "MoneyFlow",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#5B4FE0",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
