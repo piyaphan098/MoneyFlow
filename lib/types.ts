@@ -45,7 +45,8 @@ export type Bill = {
 export type Reminder = {
   id: string;
   user_id: string;
-  debt_id: string;
+  debt_id: string | null;
+  bill_id: string | null;
   reminder_days: 7 | 3 | 1 | 0;
   enabled: boolean;
 };

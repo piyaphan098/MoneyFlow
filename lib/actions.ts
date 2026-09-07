@@ -187,14 +187,22 @@ export async function logBillPayment(billId: string) {
 
 /* --------------------------------- reminders --------------------------------- */
 
-export async function setReminderLevel(input: { debt_id: string; reminder_days: 7 | 3 | 1 | 0; enabled: boolean }) {
+export async function setReminderLevel(input: {
+  debt_id?: string;
+  bill_id?: string;
+  reminder_days: 7 | 3 | 1 | 0;
+  enabled: boolean;
+}) {
   const { supabase, user } = await requireUser();
-  const { error } = await supabase
+  let query = supabase
     .from("reminders")
     .update({ enabled: input.enabled })
     .eq("user_id", user.id)
-    .eq("debt_id", input.debt_id)
     .eq("reminder_days", input.reminder_days);
+
+  query = input.debt_id ? query.eq("debt_id", input.debt_id) : query.eq("bill_id", input.bill_id!);
+
+  const { error } = await query;
   if (error) throw new Error(error.message);
   revalidatePath("/settings");
 }

@@ -206,3 +206,45 @@ create policy "bills: update own" on public.bills
   for update using (auth.uid() = user_id);
 create policy "bills: delete own" on public.bills
   for delete using (auth.uid() = user_id);
+
+-- ---------------------------------------------------------
+-- extend reminders to also support bills (not just debts)
+-- ---------------------------------------------------------
+alter table public.reminders
+  add column if not exists bill_id uuid references public.bills(id) on delete cascade;
+
+-- exactly one of debt_id / bill_id must be set — a reminder is for one or the other
+alter table public.reminders drop constraint if exists reminders_target_check;
+alter table public.reminders
+  add constraint reminders_target_check
+  check ((debt_id is not null and bill_id is null) or (debt_id is null and bill_id is not null));
+
+-- the table's original UNIQUE(user_id, debt_id, reminder_days) doesn't catch
+-- duplicate bill reminders, because SQL treats NULL <> NULL (every bill row
+-- has debt_id = NULL) — this partial index enforces true per-bill uniqueness.
+create unique index if not exists reminders_user_bill_days_idx
+  on public.reminders (user_id, bill_id, reminder_days)
+  where bill_id is not null;
+
+-- seed the 4 default reminder levels (7/3/1/0 days, all enabled)
+-- for every new bill a user creates
+create or replace function public.seed_default_bill_reminders()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.reminders (user_id, bill_id, reminder_days, enabled)
+  values
+    (new.user_id, new.id, 7, true),
+    (new.user_id, new.id, 3, true),
+    (new.user_id, new.id, 1, true),
+    (new.user_id, new.id, 0, true);
+  return new;
+end;
+$$;
+
+drop trigger if exists on_bill_created on public.bills;
+create trigger on_bill_created
+  after insert on public.bills
+  for each row execute procedure public.seed_default_bill_reminders();

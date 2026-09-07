@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { Sarabun, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const sarabun = Sarabun({
-  subsets: ["thai", "latin"],
-  weight: ["400", "500", "600", "700"],
+const sarabun = localFont({
+  src: [
+    { path: "../fonts/Sarabun-Regular.ttf", weight: "400", style: "normal" },
+    { path: "../fonts/Sarabun-Medium.ttf", weight: "500", style: "normal" },
+    { path: "../fonts/Sarabun-SemiBold.ttf", weight: "600", style: "normal" },
+    { path: "../fonts/Sarabun-Bold.ttf", weight: "700", style: "normal" },
+  ],
   variable: "--font-sarabun",
   display: "swap",
 });
 
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  weight: ["500", "700"],
+const jetbrainsMono = localFont({
+  src: "../fonts/JetBrainsMono-Variable.ttf",
+  weight: "100 800",
   variable: "--font-jetbrains-mono",
   display: "swap",
 });

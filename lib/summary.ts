@@ -116,3 +116,38 @@ export async function sendPeriodSummaries(kind: "week" | "month") {
 
   return { sent, total: links.length };
 }
+
+/** All-time balance (income minus expense) for a single user — used by the
+ *  LINE rich menu's "ยอดคงเหลือ" button for an on-demand answer. */
+export async function currentBalance(userId: string) {
+  const supabase = createAdminClient();
+  const { data } = await supabase.from("transactions").select("type, amount").eq("user_id", userId);
+  return (data ?? []).reduce(
+    (s, t) => s + (t.type === "income" ? Number(t.amount) : -Number(t.amount)),
+    0
+  );
+}
+
+/** This calendar month so far, vs. all of last month — used by the LINE rich
+ *  menu's "สรุปเดือนนี้" button for an on-demand answer (mirrors the
+ *  simplification the in-app dashboard insight already uses). */
+export async function currentMonthSummary(userId: string) {
+  const supabase = createAdminClient();
+  const todayISOStr = bangkokTodayISO();
+  const today = parseISODate(todayISOStr);
+  const start = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1));
+  const prevEnd = addDays(start, -1);
+  const prevStart = new Date(Date.UTC(prevEnd.getUTCFullYear(), prevEnd.getUTCMonth(), 1));
+
+  const [{ data: curTx }, { data: prevTx }] = await Promise.all([
+    supabase.from("transactions").select("type, amount, category")
+      .eq("user_id", userId).gte("date", toISODate(start)).lte("date", todayISOStr),
+    supabase.from("transactions").select("type, amount, category")
+      .eq("user_id", userId).gte("date", toISODate(prevStart)).lte("date", toISODate(prevEnd)),
+  ]);
+
+  const cur = summarize(curTx ?? []);
+  const prev = summarize(prevTx ?? []);
+  const rangeLabel = `${fmtShort(start)} - ${fmtShort(today)}`;
+  return { cur, prev, rangeLabel };
+}

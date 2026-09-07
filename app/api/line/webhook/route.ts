@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyLineSignature, lineReply, parseTransactionText, bangkokTodayISO } from "@/lib/line";
+import { currentBalance, currentMonthSummary } from "@/lib/summary";
+import { baht } from "@/lib/helpers";
 
 type LineEvent = {
   type: string;
@@ -71,7 +73,39 @@ export async function POST(request: Request) {
         return;
       }
 
-      // ---- 3) parse as a transaction ----
+      // ---- 3) rich-menu keyword commands ----
+      if (text === "ยอดคงเหลือ") {
+        const balance = await currentBalance(link.user_id);
+        await lineReply(replyToken, `💰 ยอดคงเหลือ: ${baht(balance)}`);
+        return;
+      }
+
+      if (text === "สรุปเดือนนี้") {
+        const { cur, prev, rangeLabel } = await currentMonthSummary(link.user_id);
+        const changePct = prev.expense > 0 ? Math.round(((cur.expense - prev.expense) / prev.expense) * 100) : null;
+        const lines = [
+          `📊 สรุปเดือนนี้ (${rangeLabel})`,
+          `รายรับ: ${baht(cur.income)}`,
+          `รายจ่าย: ${baht(cur.expense)}` +
+            (changePct !== null ? ` (${changePct >= 0 ? "มากกว่า" : "น้อยกว่า"}เดือนก่อน ${Math.abs(changePct)}%)` : ""),
+        ];
+        if (cur.topCategory) lines.push(`หมวดที่ใช้เยอะสุด: ${cur.topCategory} (${baht(cur.topCategoryAmount)})`);
+        await lineReply(replyToken, lines.join("\n"));
+        return;
+      }
+
+      if (text === "วิธีใช้") {
+        await lineReply(
+          replyToken,
+          "วิธีใช้ MoneyFlow ผ่าน LINE:\n\n" +
+            "พิมพ์รายจ่าย เช่น\n\"กาแฟ 60\"\n\n" +
+            "พิมพ์รายรับ ให้ขึ้นต้นด้วย + หรือ \"รับ\" เช่น\n\"+30000 เงินเดือน\"\n\n" +
+            "แตะเมนูด้านล่างเพื่อดูยอดคงเหลือหรือสรุปเดือนนี้ได้ทันที"
+        );
+        return;
+      }
+
+      // ---- 4) parse as a transaction ----
       const parsed = parseTransactionText(text);
       if (!parsed) {
         await lineReply(replyToken, "พิมพ์ไม่เข้าใจครับ ลองแบบนี้ดู:\n\"กาแฟ 60\" (รายจ่าย)\n\"+30000 เงินเดือน\" (รายรับ)");
