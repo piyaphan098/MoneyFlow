@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Wallet, TrendingUp, TrendingDown, CalendarClock, Lightbulb } from "lucide-react";
+import { Wallet, TrendingUp, TrendingDown, CalendarClock, Lightbulb, Lock } from "lucide-react";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { baht, urgency } from "@/lib/helpers";
 import { OnboardingCard } from "@/components/OnboardingCard";
@@ -44,7 +44,7 @@ function Pill({ children, bg, color }: { children: React.ReactNode; bg: string; 
 }
 
 export function DashboardView({
-  balance, income, expense, upcoming7Total, monthly, reminders7, insights, isNewUser,
+  balance, income, expense, upcoming7Total, monthly, reminders7, insights, isNewUser, maxChartMonths,
 }: {
   balance: number;
   income: number;
@@ -54,6 +54,7 @@ export function DashboardView({
   reminders7: ReminderDebt[];
   insights: string[];
   isNewUser: boolean;
+  maxChartMonths: number;
 }) {
   const [range, setRange] = useState<"1" | "3" | "6" | "12">("3");
   const n = range === "1" ? 1 : range === "3" ? 3 : range === "6" ? 6 : 12;
@@ -97,12 +98,29 @@ export function DashboardView({
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold">ภาพรวมกระแสเงินสด</h3>
           <div className="flex rounded-lg p-0.5 bg-mf-bg">
-            {(["1", "3", "6", "12"] as const).map((r) => (
-              <button key={r} onClick={() => setRange(r)} className="px-2.5 py-1 text-xs rounded-md font-medium"
-                style={range === r ? { background: "#5B4FE0", color: "#fff" } : { color: "#77748F" }}>
-                {r === "1" ? "เดือนนี้" : r === "12" ? "1 ปี" : r + " เดือน"}
-              </button>
-            ))}
+            {(["1", "3", "6", "12"] as const).map((r) => {
+              const months = r === "1" ? 1 : r === "3" ? 3 : r === "6" ? 6 : 12;
+              const locked = months > maxChartMonths;
+              return (
+                <button
+                  key={r}
+                  onClick={() => (locked ? undefined : setRange(r))}
+                  disabled={locked}
+                  title={locked ? `แผนปัจจุบันดูย้อนหลังได้สูงสุด ${maxChartMonths} เดือน · อัปเกรดเพื่อดูได้ไกลขึ้น` : undefined}
+                  className="px-2.5 py-1 text-xs rounded-md font-medium flex items-center gap-1"
+                  style={
+                    locked
+                      ? { color: "#B9B6CC", cursor: "not-allowed" }
+                      : range === r
+                      ? { background: "#5B4FE0", color: "#fff" }
+                      : { color: "#77748F" }
+                  }
+                >
+                  {locked && <Lock size={10} />}
+                  {r === "1" ? "เดือนนี้" : r === "12" ? "1 ปี" : r + " เดือน"}
+                </button>
+              );
+            })}
           </div>
         </div>
         <div className="h-52">

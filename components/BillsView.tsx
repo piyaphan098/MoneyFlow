@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, CheckCircle2, Lock } from "lucide-react";
 import { BillModal } from "@/components/BillModal";
 import { saveBill, deleteBill, logBillPayment } from "@/lib/actions";
 import { baht, catInfo } from "@/lib/helpers";
 import type { Bill } from "@/lib/types";
 
-export function BillsView({ bills }: { bills: Bill[] }) {
+export function BillsView({ bills, atLimit, maxItems }: { bills: Bill[]; atLimit: boolean; maxItems: number }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Bill | null | "new">(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -40,11 +41,19 @@ export function BillsView({ bills }: { bills: Bill[] }) {
         </div>
       </div>
 
-      <button onClick={() => setEditing("new")}
-        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium border-2 border-dashed"
-        style={{ borderColor: "#5B4FE0", color: "#5B4FE0" }}>
-        <Plus size={16} /> เพิ่มค่าใช้จ่ายประจำ
-      </button>
+      {atLimit ? (
+        <Link href="/settings"
+          className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+          style={{ color: "#D9A404", background: "#FBF3DC" }}>
+          <Lock size={16} /> แผนปัจจุบันเพิ่มหนี้+ค่าใช้จ่ายประจำได้สูงสุด {maxItems} รายการ · แตะเพื่ออัปเกรด
+        </Link>
+      ) : (
+        <button onClick={() => setEditing("new")}
+          className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium border-2 border-dashed"
+          style={{ borderColor: "#5B4FE0", color: "#5B4FE0" }}>
+          <Plus size={16} /> เพิ่มค่าใช้จ่ายประจำ
+        </button>
+      )}
 
       <div className="space-y-3">
         {sorted.length === 0 && <p className="text-sm text-center py-8 text-mf-sub">ยังไม่มีค่าใช้จ่ายประจำ เช่น ค่าน้ำ ค่าไฟ ค่าเน็ต</p>}

@@ -1,10 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { aggregateMonthly, baht, catInfo, toDueItems, withUpcoming } from "@/lib/helpers";
 import { DashboardView } from "@/components/DashboardView";
+import { PLAN_LIMITS, type Plan } from "@/lib/plans";
 import type { Bill, Debt, Transaction } from "@/lib/types";
 
 export default async function DashboardPage() {
   const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   // last ~500 rows is plenty for a personal MVP; move to a SQL view/RPC
   // if this ever needs true all-time aggregation at scale.
@@ -15,12 +19,14 @@ export default async function DashboardPage() {
     .limit(500);
   const transactions = (txData ?? []) as Transaction[];
 
-  const [{ data: debtsData }, { data: billsData }] = await Promise.all([
+  const [{ data: debtsData }, { data: billsData }, { data: profile }] = await Promise.all([
     supabase.from("debts").select("*"),
     supabase.from("bills").select("*"),
+    supabase.from("profiles").select("plan").eq("id", user!.id).single(),
   ]);
   const debts = (debtsData ?? []) as Debt[];
   const bills = (billsData ?? []) as Bill[];
+  const plan = (profile?.plan as Plan) ?? "free";
 
   const monthly = aggregateMonthly(transactions, 12);
   const thisMonth = monthly[monthly.length - 1];
@@ -76,6 +82,7 @@ export default async function DashboardPage() {
       reminders7={reminders7}
       insights={insights}
       isNewUser={isNewUser}
+      maxChartMonths={PLAN_LIMITS[plan].maxChartMonths}
     />
   );
 }

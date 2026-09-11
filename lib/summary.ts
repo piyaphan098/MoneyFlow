@@ -71,13 +71,24 @@ export async function sendPeriodSummaries(kind: "week" | "month") {
 
   if (!links || links.length === 0) return { sent: 0, total: 0 };
 
+  const { data: premiumProfiles } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("plan", "premium")
+    .in("id", links.map((l) => l.user_id));
+
+  const premiumIds = new Set((premiumProfiles ?? []).map((p) => p.id));
+  const premiumLinks = links.filter((l) => premiumIds.has(l.user_id));
+
+  if (premiumLinks.length === 0) return { sent: 0, total: 0 };
+
   const { start, end, prevStart, prevEnd } = kind === "week"
     ? weekRanges(bangkokTodayISO())
     : monthRanges(bangkokTodayISO());
 
   let sent = 0;
 
-  for (const link of links) {
+  for (const link of premiumLinks) {
     const [{ data: currentTx }, { data: prevTx }] = await Promise.all([
       supabase.from("transactions").select("type, amount, category")
         .eq("user_id", link.user_id).gte("date", toISODate(start)).lte("date", toISODate(end)),
@@ -114,7 +125,7 @@ export async function sendPeriodSummaries(kind: "week" | "month") {
     sent++;
   }
 
-  return { sent, total: links.length };
+  return { sent, total: premiumLinks.length };
 }
 
 /** All-time balance (income minus expense) for a single user — used by the

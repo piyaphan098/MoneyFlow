@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { todayISO } from "@/lib/helpers";
+import { PLAN_LIMITS, type Plan } from "@/lib/plans";
 import type { CategoryId, TxType } from "@/lib/types";
 
 async function requireUser() {
@@ -12,6 +13,20 @@ async function requireUser() {
   } = await supabase.auth.getUser();
   if (!user) throw new Error("ไม่ได้เข้าสู่ระบบ");
   return { supabase, user };
+}
+
+/** Same as requireUser, but also fetches the user's plan — for actions that
+ *  need to enforce a tier limit (item caps, LINE access, etc). */
+async function requireUserWithPlan() {
+  const { supabase, user } = await requireUser();
+  const { data: profile } = await supabase.from("profiles").select("plan").eq("id", user.id).single();
+  const plan: Plan = (profile?.plan as Plan) ?? "free";
+  return { supabase, user, plan, limits: PLAN_LIMITS[plan] };
+}
+
+export async function getMyPlan(): Promise<Plan> {
+  const { plan } = await requireUserWithPlan();
+  return plan;
 }
 
 /* ------------------------------- transactions ------------------------------- */
@@ -65,7 +80,18 @@ export async function saveDebt(input: {
   due_day: number;
   note?: string;
 }) {
-  const { supabase, user } = await requireUser();
+  const { supabase, user, limits } = await requireUserWithPlan();
+
+  if (!input.id && Number.isFinite(limits.maxDebtsAndBills)) {
+    const [{ count: debtCount }, { count: billCount }] = await Promise.all([
+      supabase.from("debts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("bills").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    const total = (debtCount ?? 0) + (billCount ?? 0);
+    if (total >= limits.maxDebtsAndBills) {
+      throw new Error(`แผนปัจจุบันเพิ่มหนี้และค่าใช้จ่ายประจำรวมกันได้สูงสุด ${limits.maxDebtsAndBills} รายการ อัปเกรดแผนเพื่อเพิ่มได้ไม่จำกัด`);
+    }
+  }
 
   const row = {
     user_id: user.id,
@@ -135,7 +161,18 @@ export async function saveBill(input: {
   due_day: number;
   note?: string;
 }) {
-  const { supabase, user } = await requireUser();
+  const { supabase, user, limits } = await requireUserWithPlan();
+
+  if (!input.id && Number.isFinite(limits.maxDebtsAndBills)) {
+    const [{ count: debtCount }, { count: billCount }] = await Promise.all([
+      supabase.from("debts").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+      supabase.from("bills").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+    ]);
+    const total = (debtCount ?? 0) + (billCount ?? 0);
+    if (total >= limits.maxDebtsAndBills) {
+      throw new Error(`แผนปัจจุบันเพิ่มหนี้และค่าใช้จ่ายประจำรวมกันได้สูงสุด ${limits.maxDebtsAndBills} รายการ อัปเกรดแผนเพื่อเพิ่มได้ไม่จำกัด`);
+    }
+  }
 
   const row = {
     user_id: user.id,
@@ -210,7 +247,11 @@ export async function setReminderLevel(input: {
 /* ----------------------------------- LINE link ----------------------------------- */
 
 export async function createLineLinkCode() {
-  const { supabase, user } = await requireUser();
+  const { supabase, user, limits } = await requireUserWithPlan();
+
+  if (!limits.lineEnabled) {
+    throw new Error("แผนฟรียังเชื่อมต่อ LINE ไม่ได้ อัปเกรดเป็นแผนเบสิกขึ้นไปเพื่อใช้งานฟีเจอร์นี้");
+  }
 
   const code = String(Math.floor(100000 + Math.random() * 900000)); // 6 digits
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min

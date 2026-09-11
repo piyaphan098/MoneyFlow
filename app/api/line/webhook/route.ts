@@ -73,6 +73,12 @@ export async function POST(request: Request) {
         return;
       }
 
+      const { data: profile } = await supabase.from("profiles").select("plan").eq("id", link.user_id).single();
+      if (profile?.plan === "free") {
+        await lineReply(replyToken, "แผนฟรีไม่รองรับการเชื่อมต่อ LINE แล้วครับ อัปเกรดแผนในหน้า “ตั้งค่า” เพื่อใช้งานต่อ");
+        return;
+      }
+
       // ---- 3) rich-menu keyword commands ----
       if (text === "ยอดคงเหลือ") {
         const balance = await currentBalance(link.user_id);

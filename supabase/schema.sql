@@ -13,6 +13,7 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   name text,
   email text,
+  plan text not null default 'free' check (plan in ('free', 'basic', 'premium')),
   created_at timestamptz not null default now()
 );
 
@@ -22,6 +23,19 @@ create policy "profiles: read own" on public.profiles
   for select using (auth.uid() = id);
 create policy "profiles: update own" on public.profiles
   for update using (auth.uid() = id);
+
+-- membership tier — set manually by an admin in the Supabase Table Editor
+-- (or via SQL: update public.profiles set plan = 'premium' where id = '<user-uuid>';)
+-- until a real payment flow exists.
+alter table public.profiles
+  add column if not exists plan text not null default 'free' check (plan in ('free', 'basic', 'premium'));
+
+-- subscription plan — assigned manually for now (no payment gateway yet).
+-- To upgrade someone: update public.profiles set plan = 'premium' where email = '...';
+-- (the ALTER below is only needed for databases that ran this file before "plan" existed;
+-- harmless no-op on a fresh install since the CREATE TABLE above already has the column)
+alter table public.profiles
+  add column if not exists plan text not null default 'free' check (plan in ('free', 'basic', 'premium'));
 
 -- auto-create a profile row whenever someone signs up
 create or replace function public.handle_new_user()

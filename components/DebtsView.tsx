@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, CheckCircle2 } from "lucide-react";
+import Link from "next/link";
+import { Plus, CheckCircle2, Lock } from "lucide-react";
 import { DebtModal } from "@/components/DebtModal";
 import { saveDebt, deleteDebt, logDebtPayment } from "@/lib/actions";
 import { baht } from "@/lib/helpers";
 import type { Debt } from "@/lib/types";
 
-export function DebtsView({ debts }: { debts: Debt[] }) {
+export function DebtsView({ debts, atLimit, maxItems }: { debts: Debt[]; atLimit: boolean; maxItems: number }) {
   const router = useRouter();
   const [editing, setEditing] = useState<Debt | null | "new">(null);
   const [payingId, setPayingId] = useState<string | null>(null);
@@ -44,11 +45,19 @@ export function DebtsView({ debts }: { debts: Debt[] }) {
         </div>
       </div>
 
-      <button onClick={() => setEditing("new")}
-        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium border-2 border-dashed"
-        style={{ borderColor: "#5B4FE0", color: "#5B4FE0" }}>
-        <Plus size={16} /> เพิ่มหนี้
-      </button>
+      {atLimit ? (
+        <Link href="/settings"
+          className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium"
+          style={{ color: "#D9A404", background: "#FBF3DC" }}>
+          <Lock size={16} /> แผนปัจจุบันเพิ่มหนี้+ค่าใช้จ่ายประจำได้สูงสุด {maxItems} รายการ · แตะเพื่ออัปเกรด
+        </Link>
+      ) : (
+        <button onClick={() => setEditing("new")}
+          className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium border-2 border-dashed"
+          style={{ borderColor: "#5B4FE0", color: "#5B4FE0" }}>
+          <Plus size={16} /> เพิ่มหนี้
+        </button>
+      )}
 
       <div className="space-y-3">
         {debts.length === 0 && <p className="text-sm text-center py-8 text-mf-sub">ยังไม่มีรายการหนี้</p>}

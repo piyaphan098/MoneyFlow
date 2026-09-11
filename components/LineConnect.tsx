@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Copy, Check } from "lucide-react";
+import Link from "next/link";
+import { MessageCircle, Copy, Check, Lock } from "lucide-react";
 import { createLineLinkCode, unlinkLine } from "@/lib/actions";
 import type { LineLink } from "@/lib/types";
 
-export function LineConnect({ initial }: { initial: LineLink | null }) {
+export function LineConnect({ initial, lineEnabled }: { initial: LineLink | null; lineEnabled: boolean }) {
   const router = useRouter();
   const [code, setCode] = useState<string | null>(
     initial?.link_code && initial.link_code_expires_at && new Date(initial.link_code_expires_at) > new Date()
@@ -58,7 +59,16 @@ export function LineConnect({ initial }: { initial: LineLink | null }) {
         <span className="mf-num">&quot;+30000 เงินเดือน&quot;</span> ระบบจะบันทึกให้อัตโนมัติ
       </p>
 
-      {isLinked ? (
+      {!lineEnabled ? (
+        <Link href="/settings#plan"
+          className="flex items-center justify-between rounded-xl p-3"
+          style={{ background: "#FBF3DC" }}>
+          <span className="text-sm font-medium flex items-center gap-1.5" style={{ color: "#D9A404" }}>
+            <Lock size={14} /> แผนฟรียังใช้ไม่ได้
+          </span>
+          <span className="text-xs font-medium" style={{ color: "#D9A404" }}>แตะเพื่ออัปเกรด</span>
+        </Link>
+      ) : isLinked ? (
         <div className="flex items-center justify-between rounded-xl p-3 bg-mf-incomeSoft">
           <span className="text-sm font-medium text-mf-income">เชื่อมต่อ LINE แล้ว ✅</span>
           <button onClick={handleUnlink} disabled={loading} className="text-xs font-medium text-mf-expense">
